@@ -1,5 +1,5 @@
 # healboard
-Modified version of scoreboard to handle heal parsing instead.
+Modified version of scoreboard to handle healing done parsing instead.
 
 -- Known issues --
 
