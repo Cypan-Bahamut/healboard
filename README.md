@@ -10,4 +10,4 @@ Primary uses:
 
 -- Known issues --
 
-No reporting functionality and healing doesn't parse correctly for the Monberaux trust.
+No reporting functionality and healing doesn't parse correctly for the Monberaux trust and I never got around to including dread spikes.
