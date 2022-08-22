@@ -3,9 +3,9 @@ Modified version of scoreboard to handle healing done parsing instead.
 
 Primary uses:
 
-//hb visible -- show/hide
+//hd visible -- show/hide
 
-//hb reset   -- resets parse
+//hd reset   -- resets parse
 
 
 -- Known issues --
