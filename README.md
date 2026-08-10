@@ -22,7 +22,3 @@ All commands use `//hd` (or `//healboard`):
 | `//hd set combinepets true\|false` | Merge pet totals into owners |
 | `//hd set numplayers <n>` | Max players displayed |
 | `//hd save` | Saves current settings |
-
-## Known issues
-
-Healing doesn't parse correctly for the Monberaux trust, and dread spikes are not counted.
