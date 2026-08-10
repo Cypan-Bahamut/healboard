@@ -115,7 +115,7 @@ function Display:build_healboard_header()
 
     local hps_chunk = 'hps: %s%s':format(hps_status, hps_clock_str)
 
-    return '%s%s\nMobs: %-9s\n%s':format(hps_chunk, ' ':rep(29 - hps_chunk:len()) .. '//sb help', mob_filter_str, labels)
+    return '%s%s\nMobs: %-9s\n%s':format(hps_chunk, ' ':rep(29 - hps_chunk:len()) .. '//healboard help', mob_filter_str, labels)
 end
 
 
@@ -348,8 +348,8 @@ end()
 -- TODO: This needs to be factored somehow to take better advantage of similar
 --       code already written for reporting and stat queries.
 Display.stat_summaries._all_stats = T{
-    ['healrange']     = {percent=false, category="range",   name='Melee Non-Crit. Range'},
-    ['healavg']       = {percent=false, category="average", name='Melee Crit. Avg. healing'},}
+    ['healrange']     = {percent=false, category="range",   name='Healing Range'},
+    ['healavg']       = {percent=false, category="average", name='Healing Avg.'},}
 function Display:report_stat(stat, args)
     if Display.stat_summaries._all_stats:containskey(stat) then
         local stats = self.db:query_stat(stat, args.player)

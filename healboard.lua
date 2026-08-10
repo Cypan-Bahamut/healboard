@@ -1,8 +1,8 @@
 -- healboard addon for Windower4. See readme.md for a complete description.
 
 _addon.name = 'healboard'
-_addon.author = 'Suji'
-_addon.version = '1.14'
+_addon.author = 'Suji; Modified by Cypan (Bahamut)'
+_addon.version = '8.0'
 _addon.commands = {'hd', 'healboard'}
 
 require('tables')
@@ -26,7 +26,7 @@ default_settings.numplayers = 8
 default_settings.hbcolor = 204
 default_settings.showallihps = true
 default_settings.resetfilters = true
-default_settings.visible = true
+default_settings.visible = false
 default_settings.showfellow = true
 default_settings.UpdateFrequency = 0.5
 default_settings.combinepets = true
@@ -81,18 +81,22 @@ windower.register_event('addon command', function()
         local params = {...}
 
         if command == 'help' then
-            hb_output('healboard v' .. _addon.version .. '. Author: Suji')
-            hb_output('hb help : Shows help message')
-            hb_output('hb pos <x> <y> : Positions the healboard')
-            hb_output('hb reset : Reset healing')
-            hb_output('hb report [<target>] : Reports healing. Can take standard chatmode target options.')
-            hb_output('hb reportstat <stat> [<player>] [<target>] : Reports the given stat. Can take standard chatmode target options. Ex: //hb rs acc p')
+            hb_output('healboard v' .. _addon.version .. '. Author: Suji; Modified by Cypan (Bahamut)')
+            hb_output('hd help : Shows help message')
+            hb_output('hd pos <x> <y> : Positions the healboard')
+            hb_output('hd reset : Reset healing')
+            hb_output('hd report [<target>] : Reports healing. Can take standard chatmode target options.')
+            hb_output('hd reportstat <stat> [<player>] [<target>] : Reports the given stat. Can take standard chatmode target options. Ex: //hd rs acc p')
             hb_output('Valid chatmode targets are: ' .. chatmodes:concat(', '))
-            hb_output('hb filter show  : Shows current filter settings')
-            hb_output('hb filter add <mob1> <mob2> ... : Add mob patterns to the filter (substrings ok)')
-            hb_output('hb filter clear : Clears mob filter')
-            hb_output('hb visible : Toggles healboard visibility')
-            hb_output('hb stat <stat> [<player>]: Shows specific healing stats. Respects filters. If player isn\'t specified, ' ..
+            hb_output('hd filter show  : Shows current filter settings')
+            hb_output('hd filter add <mob1> <mob2> ... : Add mob patterns to the filter (substrings ok)')
+            hb_output('hd filter clear : Clears mob filter')
+            hb_output('hd visible : Toggles healboard visibility')
+            hb_output('hd set combinepets true|false : Merge pet totals into owners')
+            hb_output('hd set numplayers <n> : Max players displayed')
+            hb_output('hd fields : Lists valid stat fields')
+            hb_output('hd save : Saves current settings')
+            hb_output('hd stat <stat> [<player>]: Shows specific healing stats. Respects filters. If player isn\'t specified, ' ..
                   'stats for everyone are displayed. Valid stats are:')
             hb_output(hps_db.player_stat_fields:tostring():stripchars('{}"'))
         elseif command == 'pos' then
@@ -210,7 +214,7 @@ windower.register_event('addon command', function()
             if params[1] then
                 subcmd = params[1]:lower()
             else
-                error('Invalid option to //hb filter. See //hb help')
+                error('Invalid option to //hd filter. See //hd help')
                 return
             end
 
@@ -283,7 +287,7 @@ windower.register_event('addon command', function()
                 save()
             end
         else
-            error('Unrecognized command. See //hb help')
+            error('Unrecognized command. See //hd help')
         end
     end
 end())
@@ -413,21 +417,42 @@ function action_handler(raw_actionpacket)
     end
 
     for target in actionpacket:get_targets() do
-        for subactionpacket in target:get_actions() do
-            if (mob_is_ally(actionpacket.raw.actor_id) and mob_is_ally(target.raw.id)) then
-                local main  = subactionpacket:get_basic_info()
-                local add   = subactionpacket:get_add_effect()
-                local spike = subactionpacket:get_spike_effect()
-                if main.message_id == 7 or main.message_id == 102 or main.message_id == 122 or
-                main.message_id == 321 or main.message_id == 306 or main.message_id == 367 or
-                main.message_id == 387 or main.message_id == 606 or main.message_id == 306 or
-                main.message_id == 24 or main.message_id == 122 or main.message_id == 26 or
-                main.message_id == 167 or main.message_id == 263 or main.message_id == 318 then
-                    hps_db:add_heal(target:get_name(), create_mob_name(actionpacket), main.param)
+    for subactionpacket in target:get_actions() do
+        if (mob_is_ally(actionpacket.raw.actor_id) and mob_is_ally(target.raw.id)) then
+            local main  = subactionpacket:get_basic_info()
+            local add   = subactionpacket:get_add_effect()
+            local spike = subactionpacket:get_spike_effect()
+
+            local actor_name = create_mob_name(actionpacket)
+
+            -- Prefer conclusion-based parsing to capture spells, abilities, waltzes, and item-based healing.
+            if main and main.conclusion and main.conclusion.subject == 'target' and T(main.conclusion.objects):contains('HP') and main.param and main.param ~= 0 then
+                if main.conclusion.verb == 'gains' and main.param > 0 then
+                    hps_db:add_heal(target:get_name(), actor_name, main.param)
+                end
+            else
+                -- Fallback message-id based parsing for common healing messages.
+                if main and main.message_id and main.param and main.param > 0 then
+                    if T{7,24,26,102,122,167,263,306,318,321,367,387,606}:contains(main.message_id) then
+                        hps_db:add_heal(target:get_name(), actor_name, main.param)
+                    end
+                end
+            end
+
+            if add and add.conclusion and add.conclusion.subject == 'target' and T(add.conclusion.objects):contains('HP') and add.param and add.param ~= 0 then
+                if add.conclusion.verb == 'gains' and add.param > 0 then
+                    hps_db:add_heal(target:get_name(), actor_name, add.param)
+                end
+            end
+
+            if spike and spike.conclusion and spike.conclusion.subject == 'target' and T(spike.conclusion.objects):contains('HP') and spike.param and spike.param ~= 0 then
+                if spike.conclusion.verb == 'gains' and spike.param > 0 then
+                    hps_db:add_heal(target:get_name(), actor_name, spike.param)
                 end
             end
         end
     end
+end
 end
 
 ActionPacket.open_listener(action_handler)
